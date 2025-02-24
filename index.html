@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCADA AI Symbol Generator</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-6">
+
+    <!-- Header -->
+    <h1 class="text-3xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+        SCADA AI Symbol Generator
+    </h1>
+
+    <!-- Toolbar -->
+    <div class="w-full max-w-2xl glassmorphism shadow-lg rounded-lg p-6 flex items-center gap-4">
+        <input type="text" id="symbolInput" placeholder="Enter symbol description"
+            class="flex-1 p-3 border border-gray-500 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button onclick="getGeminiResponse()" id="btnGenerate"
+            class="bg-gradient-to-r from-blue-400 to-purple-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md transition transform hover:scale-105">
+            Generate
+        </button>
+
+    </div>
+
+    <!-- Loader (Initially Hidden) -->
+    <div id="loader" class="hidden mt-4 flex items-center gap-2 text-gray-300">
+        <div class="w-6 h-6 border-4 border-gray-500 border-t-blue-400 rounded-full animate-spin"></div>
+        <span>Generating Symbol...</span>
+    </div>
+
+    <!-- SVG Canvas -->
+    <div class="w-full max-w-3xl glassmorphism shadow-lg rounded-lg mt-6 p-6 flex justify-center items-center">
+        <svg id="canvasBackground" width="800" height="500" class="bg-white border border-gray-500 rounded-lg"></svg>
+
+    </div>
+
+    <div class="w-full max-w-3xl pt-3 flex justify-end space-x-2 rounded-lg shadow-md">
+
+        <!-- Clear Button -->
+        <button onclick="clearSvg()" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg shadow-lg transition-all duration-300 
+       bg-gradient-to-r from-orange-500 to-purple-600 hover:from-purple-600 hover:to-orange-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Clear
+        </button>
+
+        <!-- Copy Button -->
+        <!-- <button id="copyBtn" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg shadow-lg transition-all duration-300 
+       bg-gradient-to-r from-green-500 to-blue-500 hover:from-blue-500 hover:to-green-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy
+        </button> -->
+
+        <!-- Download Button -->
+        <!-- <button class="flex items-center gap-2 px-4 py-2 text-white rounded-lg shadow-lg transition-all duration-300 
+       bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-cyan-500 hover:to-teal-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 16h16"></path>
+            </svg>
+            Download
+        </button> -->
+
+
+    </div>
+
+
+    <script>
+        async function getGeminiResponse() {
+            const inputText = $("#symbolInput").val().trim();
+            if (!inputText) {
+                alert("Please enter a valid description!");
+                return;
+            }
+
+            // Show loader
+            $("#loader").removeClass("hidden");
+            $("#btnGenerate").addClass("disabled:bg-gray-400 disabled:cursor-not-allowed").attr("disabled", "disabled");
+
+
+            try {
+                const formattedPrompt = `Analyze the user's request to understand the SCADA system symbol they need based on the input: "${inputText}". Generate an accurate and detailed SVG representation of the requested symbol with minor details for realism. The SVG should be relevant to industrial SCADA systems and serve as a proper reference. Ensure the output is structured within <svg>...</svg> tags without markdown formatting. give only svg code for the given prompt`;
+
+                const apiKey = "AIzaSyCSCY2orn5cNmSG4Vr6I7wBF7YW0eJ6xrs";
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: formattedPrompt }] }] })
+                });
+                //emini-2.0-flash-exp
+                const data = await response.json();
+                console.log(data);
+                debugger;
+
+                if (!data.candidates || data.candidates.length === 0) {
+                    throw new Error("Invalid response from API.");
+                }
+
+                let rawText = data.candidates[0].content.parts[0].text;
+                rawText = rawText.replace('xml', '');
+                let svgContent = rawText.replace(/```svg|```/g, "").trim();
+
+                // set svg height width
+
+                // Ensure SVG is valid before injecting into the DOM
+                if (svgContent.startsWith("<svg")) {
+                    $("#canvasBackground").html(svgContent);
+
+                    $("#canvasBackground svg").attr("height", "100%");
+                    $("#canvasBackground svg").attr("width", "100%");
+
+
+                } else {
+                    throw new Error("Invalid SVG response.");
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                alert("Failed to generate symbol. Please try again.");
+            } finally {
+                // Hide loader
+                $("#loader").addClass("hidden");
+                $("#btnGenerate").removeClass("disabled:bg-gray-400 disabled:cursor-not-allowed").removeAttr("disabled", "disabled");
+            }
+        }
+
+        function clearSvg() {
+            try {
+
+                $("#canvasBackground").empty();
+            } catch (error) {
+                console.error("Error: ", error)
+            }
+        }
+
+        function copySvg() {
+            try {
+
+                let svgContent = $("#canvasBackground").html();
+
+            } catch (error) {
+                console.error("Error: ", error);
+            }
+        }
+
+        function downloadSVG() {
+            try {
+
+            } catch (error) {
+                console.error("Error: ", error);
+            }
+        }
+    </script>
+
+</body>
+
+</html>
