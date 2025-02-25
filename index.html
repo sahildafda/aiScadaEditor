@@ -7,6 +7,7 @@
     <title>SCADA AI Symbol Generator</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 
     <style>
         .glassmorphism {
@@ -60,7 +61,7 @@
         </button>
 
         <!-- Copy Button -->
-        <!-- <button id="copyBtn" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg shadow-lg transition-all duration-300 
+        <button onclick="copySvg()" id="copyBtn" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg shadow-lg transition-all duration-300 
        bg-gradient-to-r from-green-500 to-blue-500 hover:from-blue-500 hover:to-green-500">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -68,7 +69,7 @@
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
             Copy
-        </button> -->
+        </button>
 
         <!-- Download Button -->
         <!-- <button class="flex items-center gap-2 px-4 py-2 text-white rounded-lg shadow-lg transition-all duration-300 
@@ -82,7 +83,7 @@
 
     </div>
 
-
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script>
         async function getGeminiResponse() {
             const inputText = $("#symbolInput").val().trim();
@@ -97,7 +98,7 @@
 
 
             try {
-                const formattedPrompt = `Analyze the user's request to understand the SCADA system symbol they need based on the input: "${inputText}". Generate an accurate and detailed SVG representation of the requested symbol with minor details for realism. The SVG should be relevant to industrial SCADA systems and serve as a proper reference. Ensure the output is structured within <svg>...</svg> tags without markdown formatting. give only svg code for the given prompt`;
+                const formattedPrompt = `Generate a highly realistic and detailed industrial SCADA system symbol for '${inputText}', ensuring accurate representation of components, structures, and operational elements. The design should include minor realistic details such as shadows, gradients, reflections, and textures where applicable, while maintaining clarity for SCADA visualization. The output should be an optimized and structured SVG within <svg>...</svg> tags, suitable for industrial automation and control systems. Avoid unnecessary metadata, ensuring the SVG remains lightweight and efficient for real-time SCADA applications.`;
 
                 const userSvgInput = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
   <!-- Background Grid -->
@@ -218,6 +219,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ contents: [{ parts: [{ text: formattedPrompt }] }] })
                 });
+
                 //gemini-2.0-flash-exp
                 const data = await response.json();
                 console.log(data);
@@ -229,7 +231,10 @@
                 rawText = rawText.replace('xml', '');
                 let svgContent = rawText.replace(/```svg|```/g, "").trim();
 
+                svgContent = svgContent.match(/<svg[\s\S]*<\/svg>/)?.[0];
+
                 // set svg height width
+                console.log(svgContent);
 
                 // Ensure SVG is valid before injecting into the DOM
                 if (svgContent.startsWith("<svg")) {
@@ -237,7 +242,6 @@
 
                     $("#canvasBackground svg").attr("height", "100%");
                     $("#canvasBackground svg").attr("width", "100%");
-
 
                 } else {
                     throw new Error("Invalid SVG response.");
@@ -262,22 +266,24 @@
         }
 
         function copySvg() {
-            try {
 
-                let svgContent = $("#canvasBackground").html();
+            const input = document.createElement("textarea");
+            input.value = $("#canvasBackground").html();
+            document.body.appendChild(input);
 
-            } catch (error) {
-                console.error("Error: ", error);
-            }
+            input.select();
+
+            document.execCommand("copy");
+            document.body.removeChild(input);
+            console.log("Text copied!");
+
+            Toastify({
+                text: "SVG Copied!",
+                className: "info",
+                gravity: "bottom"
+            }).showToast();
         }
 
-        function downloadSVG() {
-            try {
-
-            } catch (error) {
-                console.error("Error: ", error);
-            }
-        }
     </script>
 
 </body>
